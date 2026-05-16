@@ -9,6 +9,7 @@ use crate::classifier::{classify, FileKind};
 use crate::code_diff::{diff_binary, diff_code, BinaryDiffResult, CodeDiffResult};
 use crate::config::CrawlConfig;
 use crate::data_diff::{diff_data, DataDiffResult};
+use crate::matcher::{find_renames, RenameCandidate};
 use crate::walker::{diff_trees, walk_tree, TreeDiff};
 
 // ── serialisable tree wrapper ─────────────────────────────────────────────────
@@ -44,7 +45,6 @@ fn sorted_paths(set: &HashSet<PathBuf>) -> Vec<String> {
 // ── report ────────────────────────────────────────────────────────────────────
 
 /// Crawl output. Top-level keys match the Python `report_to_dict()` structure.
-/// `rename_candidates` is added in Phase 4.
 #[derive(Debug, Serialize)]
 pub struct CrawlReport {
     pub dir_a: String,
@@ -53,6 +53,7 @@ pub struct CrawlReport {
     pub code_diffs: Vec<CodeDiffResult>,
     pub data_diffs: Vec<DataDiffResult>,
     pub binary_diffs: Vec<BinaryDiffResult>,
+    pub rename_candidates: Vec<RenameCandidate>,
 }
 
 // ── internal dispatch enum ────────────────────────────────────────────────────
@@ -124,6 +125,15 @@ pub fn crawl(dir_a: &Path, dir_b: &Path, config: &CrawlConfig) -> Result<CrawlRe
         }
     }
 
+    // Rename detection: only over code files unique to each side.
+    let rename_candidates = find_renames(
+        &diff.only_in_a,
+        &diff.only_in_b,
+        &idx_a.abs_lookup,
+        &idx_b.abs_lookup,
+        config.rename_threshold,
+    );
+
     Ok(CrawlReport {
         dir_a: idx_a.root.to_string_lossy().replace('\\', "/"),
         dir_b: idx_b.root.to_string_lossy().replace('\\', "/"),
@@ -131,5 +141,6 @@ pub fn crawl(dir_a: &Path, dir_b: &Path, config: &CrawlConfig) -> Result<CrawlRe
         code_diffs,
         data_diffs,
         binary_diffs,
+        rename_candidates,
     })
 }
