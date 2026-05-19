@@ -50,7 +50,11 @@ fn hash_file(path: &Path) -> std::io::Result<String> {
         }
         hasher.update(&buf[..n]);
     }
-    Ok(hasher.finalize().iter().map(|b| format!("{b:02x}")).collect())
+    Ok(hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect())
 }
 
 /// Build an error result. Python's dataclass default for `similarity` is 1.0;
@@ -187,10 +191,16 @@ pub fn diff_binary(rel: &Path, abs_a: &Path, abs_b: &Path) -> BinaryDiffResult {
     let size_a = abs_a.metadata().map(|m| m.len()).unwrap_or(0);
     let size_b = abs_b.metadata().map(|m| m.len()).unwrap_or(0);
     // Python skips hashing zero-length files: `ha = _hash_file(abs_a) if sa else ""`
-    let sha256_a =
-        if size_a > 0 { hash_file(abs_a).unwrap_or_default() } else { String::new() };
-    let sha256_b =
-        if size_b > 0 { hash_file(abs_b).unwrap_or_default() } else { String::new() };
+    let sha256_a = if size_a > 0 {
+        hash_file(abs_a).unwrap_or_default()
+    } else {
+        String::new()
+    };
+    let sha256_b = if size_b > 0 {
+        hash_file(abs_b).unwrap_or_default()
+    } else {
+        String::new()
+    };
     BinaryDiffResult {
         path,
         identical: sha256_a == sha256_b && size_a == size_b,

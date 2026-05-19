@@ -11,7 +11,10 @@ use diff_crawler::report::render_markdown;
 #[test]
 fn summary_no_code_files_avg_sim_is_one() {
     let s = build_summary(5, 2, 1, 0.8, &[], &[], &[], &[]);
-    assert_eq!(s.code.avg_similarity, 1.0, "avg_similarity must default to 1.0 when no code files");
+    assert_eq!(
+        s.code.avg_similarity, 1.0,
+        "avg_similarity must default to 1.0 when no code files"
+    );
 }
 
 #[test]
@@ -65,7 +68,11 @@ fn summary_code_counts_correct() {
         note: String::new(),
         error: None,
     };
-    let diffs = vec![make(true, 1.0, 0, 0), make(false, 0.5, 10, 5), make(false, 0.8, 2, 3)];
+    let diffs = vec![
+        make(true, 1.0, 0, 0),
+        make(false, 0.5, 10, 5),
+        make(false, 0.8, 2, 3),
+    ];
     let s = build_summary(3, 0, 0, 1.0, &diffs, &[], &[], &[]);
     assert_eq!(s.code.compared, 3);
     assert_eq!(s.code.identical, 1);
@@ -94,9 +101,9 @@ fn summary_data_schema_changed_count() {
     };
 
     let data = vec![
-        make(vec!["new_col".into()], vec![]),  // schema changed
-        make(vec![], vec![]),                   // schema unchanged
-        make(vec![], vec!["old_col".into()]),   // schema changed
+        make(vec!["new_col".into()], vec![]), // schema changed
+        make(vec![], vec![]),                 // schema unchanged
+        make(vec![], vec!["old_col".into()]), // schema changed
     ];
     let s = build_summary(3, 0, 0, 1.0, &[], &data, &[], &[]);
     assert_eq!(s.data.compared, 3);
@@ -121,8 +128,14 @@ fn markdown_contains_required_sections() {
     assert!(md.contains("## Tree summary"), "must have tree section");
     assert!(md.contains("## Code"), "must have code section");
     assert!(md.contains("## Data"), "must have data section");
-    assert!(md.contains("## Binary / model files"), "must have binary section");
-    assert!(md.contains("## Likely renames / moves"), "must have renames section");
+    assert!(
+        md.contains("## Binary / model files"),
+        "must have binary section"
+    );
+    assert!(
+        md.contains("## Likely renames / moves"),
+        "must have renames section"
+    );
     assert!(md.contains("## Overall"), "must have overall section");
 }
 
@@ -135,8 +148,14 @@ fn markdown_dir_paths_present() {
     let report = crawl(dir_a.path(), dir_b.path(), &config).unwrap();
     let md = render_markdown(&report);
 
-    assert!(md.contains(&report.dir_a), "markdown must contain dir_a path");
-    assert!(md.contains(&report.dir_b), "markdown must contain dir_b path");
+    assert!(
+        md.contains(&report.dir_a),
+        "markdown must contain dir_a path"
+    );
+    assert!(
+        md.contains(&report.dir_b),
+        "markdown must contain dir_b path"
+    );
 }
 
 #[test]
@@ -177,12 +196,21 @@ def evaluate(model, dataset):
     fs::write(dir_a.path().join("metrics.py"), code).unwrap();
     fs::write(dir_b.path().join("metrics_utils.py"), code).unwrap();
 
-    let config = CrawlConfig { rename_threshold: 0.4, ..CrawlConfig::default() };
+    let config = CrawlConfig {
+        rename_threshold: 0.4,
+        ..CrawlConfig::default()
+    };
     let report = crawl(dir_a.path(), dir_b.path(), &config).unwrap();
     let md = render_markdown(&report);
 
-    assert!(md.contains("metrics.py"), "rename from_path must appear in markdown");
-    assert!(md.contains("metrics_utils.py"), "rename to_path must appear in markdown");
+    assert!(
+        md.contains("metrics.py"),
+        "rename from_path must appear in markdown"
+    );
+    assert!(
+        md.contains("metrics_utils.py"),
+        "rename to_path must appear in markdown"
+    );
 }
 
 #[test]
@@ -190,9 +218,16 @@ fn markdown_changed_code_file_listed() {
     let dir_a = TempDir::new().unwrap();
     let dir_b = TempDir::new().unwrap();
     fs::write(dir_a.path().join("algo.py"), "def foo(): return 1\n").unwrap();
-    fs::write(dir_b.path().join("algo.py"), "def bar(): return 99\ndef baz(): pass\n").unwrap();
+    fs::write(
+        dir_b.path().join("algo.py"),
+        "def bar(): return 99\ndef baz(): pass\n",
+    )
+    .unwrap();
 
-    let config = CrawlConfig { include_full_unified_diff: false, ..CrawlConfig::default() };
+    let config = CrawlConfig {
+        include_full_unified_diff: false,
+        ..CrawlConfig::default()
+    };
     let report = crawl(dir_a.path(), dir_b.path(), &config).unwrap();
     let md = render_markdown(&report);
 

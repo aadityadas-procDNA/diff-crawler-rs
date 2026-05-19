@@ -15,7 +15,10 @@ fn write(dir: &Path, name: &str, content: &str) -> PathBuf {
 }
 
 /// Build the (rel, abs) lookup maps used by find_renames.
-fn make_lookup(_dir: &Path, files: &[(&str, PathBuf)]) -> (HashSet<PathBuf>, HashMap<PathBuf, PathBuf>) {
+fn make_lookup(
+    _dir: &Path,
+    files: &[(&str, PathBuf)],
+) -> (HashSet<PathBuf>, HashMap<PathBuf, PathBuf>) {
     let mut set = HashSet::new();
     let mut map = HashMap::new();
     for (rel_str, abs) in files {
@@ -62,8 +65,15 @@ def evaluate_model(model, test_data):
     let r = &results[0];
     assert_eq!(r.from_path, "model_train.py");
     assert_eq!(r.to_path, "train_model.py");
-    assert!(r.content_similarity > 0.9, "identical content should have content_similarity > 0.9, got {}", r.content_similarity);
-    assert!(r.combined_score >= 0.4, "combined_score must be at threshold");
+    assert!(
+        r.content_similarity > 0.9,
+        "identical content should have content_similarity > 0.9, got {}",
+        r.content_similarity
+    );
+    assert!(
+        r.combined_score >= 0.4,
+        "combined_score must be at threshold"
+    );
 }
 
 #[test]
@@ -111,7 +121,11 @@ def split_data(df, test_size=0.2):
 
     let results = find_renames(&only_a, &only_b, &lookup_a, &lookup_b, 0.4);
 
-    assert_eq!(results.len(), 1, "slightly modified file should still be detected");
+    assert_eq!(
+        results.len(),
+        1,
+        "slightly modified file should still be detected"
+    );
     assert!(results[0].combined_score >= 0.4);
 }
 
@@ -121,12 +135,10 @@ fn completely_different_files_are_not_reported() {
     let dir_b = TempDir::new().unwrap();
 
     // Use long, meaningfully different content.
-    let abs_a = write(
-        dir_a.path(), "a.py",
-        &"x = 1\n".repeat(200),
-    );
+    let abs_a = write(dir_a.path(), "a.py", &"x = 1\n".repeat(200));
     let abs_b = write(
-        dir_b.path(), "b.py",
+        dir_b.path(),
+        "b.py",
         &"y = 'hello world foo bar baz qux quux'\n".repeat(200),
     );
 
@@ -135,7 +147,10 @@ fn completely_different_files_are_not_reported() {
 
     let results = find_renames(&only_a, &only_b, &lookup_a, &lookup_b, 0.4);
 
-    assert!(results.is_empty(), "completely different files should not produce a rename candidate");
+    assert!(
+        results.is_empty(),
+        "completely different files should not produce a rename candidate"
+    );
 }
 
 #[test]
@@ -160,7 +175,10 @@ def process(data):
 
     // With a very high threshold (1.0) nothing should be reported.
     let strict = find_renames(&only_a, &only_b, &lookup_a, &lookup_b, 1.0);
-    assert!(strict.is_empty(), "threshold=1.0 should suppress all candidates");
+    assert!(
+        strict.is_empty(),
+        "threshold=1.0 should suppress all candidates"
+    );
 
     // With the default threshold the identical-content file should be found.
     let normal = find_renames(&only_a, &only_b, &lookup_a, &lookup_b, 0.4);
@@ -193,14 +211,14 @@ def helper_{n}(data):
     let abs_b1 = write(dir_b.path(), "module_one_v2.py", &code(1));
     let abs_b2 = write(dir_b.path(), "module_two_v2.py", &code(2));
 
-    let (only_a, lookup_a) = make_lookup(dir_a.path(), &[
-        ("module_one.py", abs_a1),
-        ("module_two.py", abs_a2),
-    ]);
-    let (only_b, lookup_b) = make_lookup(dir_b.path(), &[
-        ("module_one_v2.py", abs_b1),
-        ("module_two_v2.py", abs_b2),
-    ]);
+    let (only_a, lookup_a) = make_lookup(
+        dir_a.path(),
+        &[("module_one.py", abs_a1), ("module_two.py", abs_a2)],
+    );
+    let (only_b, lookup_b) = make_lookup(
+        dir_b.path(),
+        &[("module_one_v2.py", abs_b1), ("module_two_v2.py", abs_b2)],
+    );
 
     let results = find_renames(&only_a, &only_b, &lookup_a, &lookup_b, 0.4);
 
@@ -209,7 +227,8 @@ def helper_{n}(data):
         assert!(
             w[0].combined_score >= w[1].combined_score,
             "results must be sorted descending: {} < {}",
-            w[0].combined_score, w[1].combined_score
+            w[0].combined_score,
+            w[1].combined_score
         );
     }
 }
@@ -255,7 +274,10 @@ def evaluate(model, dataset):
     fs::write(dir_a.path().join("metrics.py"), code).unwrap();
     fs::write(dir_b.path().join("metrics_utils.py"), code).unwrap();
 
-    let config = CrawlConfig { rename_threshold: 0.4, ..CrawlConfig::default() };
+    let config = CrawlConfig {
+        rename_threshold: 0.4,
+        ..CrawlConfig::default()
+    };
     let report = crawl(dir_a.path(), dir_b.path(), &config).unwrap();
 
     assert!(
@@ -264,8 +286,14 @@ def evaluate(model, dataset):
     );
     let r = &report.rename_candidates[0];
     assert!(r.combined_score >= 0.4);
-    assert!(!r.from_path.contains('\\'), "from_path must use forward slashes");
-    assert!(!r.to_path.contains('\\'), "to_path must use forward slashes");
+    assert!(
+        !r.from_path.contains('\\'),
+        "from_path must use forward slashes"
+    );
+    assert!(
+        !r.to_path.contains('\\'),
+        "to_path must use forward slashes"
+    );
 }
 
 #[test]

@@ -1,0 +1,104 @@
+# CI — runs on every push (any branch) and every pull request.
+#
+# What this does and why:
+#   cargo fmt --check    — fast formatting gate; fails in ~2 s before burning
+#                          time on heavier checks if someone forgot `cargo fmt`
+#   cargo clippy         — lint gate; -D warnings = any warning is a CI failure
+#   cargo build          — confirms the whole crate graph compiles on Linux
+#   cargo test           — runs all 85 unit + integration tests; parity tests
+#                          (tests/parity.rs) run the Python reference tool and
+#                          compare JSON output structurally — they require the
+#                          Python reference deps to be installed (see below)
+#
+# Python setup is needed specifically for tests/parity.rs.  Those tests call
+# the Python reference implementation (`python -m diff_crawler`) and compare
+# its JSON output against the Rust binary.  Without Python, the parity tests
+# self-skip gracefully (they print "SKIP …" and return), but we want them to
+# actually run in CI so they gate merges.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  # Rust incremental compilation is off in CI — the cache provides the speedup
+  # and incremental adds disk I/O overhead without benefit.
+  CARGO_INCREMENTAL: "0"
+  # Faster linking on Linux via lld (optional — remove if it causes issues)
+  RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
+
+jobs:
+  ci:
+    name: fmt · clippy · test
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Rust toolchain ─────────────────────────────────────────────────
+      # dtolnay/rust-toolchain is the modern replacement for actions-rs/toolchain.
+      # We install clippy and rustfmt as components so we don't need a separate
+      # `rustup component add` step.
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      # ── 3. Build cache ────────────────────────────────────────────────────
+      # Caches ~/.cargo/registry (downloaded crates) and target/ (compiled
+      # artifacts), keyed on Cargo.lock + OS + Rust version.  Cache hits reduce
+      # full-build time from ~4 min to ~30 sec.
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+
+      # ── 4. lld linker (optional speedup) ─────────────────────────────────
+      # lld is significantly faster than the default GNU ld for Rust binaries.
+      # If it's unavailable the RUSTFLAGS line above is simply ignored by
+      # removing it — this step installs it.
+      - name: Install lld
+        run: sudo apt-get install -y lld
+
+      # ── 5. Formatting check ───────────────────────────────────────────────
+      - name: cargo fmt --check
+        run: cargo fmt --check
+
+      # ── 6. Lint ───────────────────────────────────────────────────────────
+      # -D warnings promotes every clippy warning to a compile error so lint
+      # issues can't silently accumulate.
+      - name: cargo clippy
+        run: cargo clippy -- -D warnings
+
+      # ── 7. Build ──────────────────────────────────────────────────────────
+      - name: cargo build
+        run: cargo build
+
+      # ── 8. Python (for parity tests) ─────────────────────────────────────
+      # The parity tests (tests/parity.rs) shell out to `python -m diff_crawler`
+      # to produce a reference JSON, then compare it against the Rust binary.
+      # We install Python 3.11 and the reference package's two dependencies:
+      #   duckdb     — used by the Python data_diff layer
+      #   datasketch — used by the Python MinHash rename detection
+      # The reference package itself is NOT pip-installed; it's put on PYTHONPATH
+      # by the test code via CARGO_MANIFEST_DIR/reference.
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: reference/diff_crawler/requirements.txt
+
+      - name: Install Python reference deps
+        run: pip install -r reference/diff_crawler/requirements.txt
+
+      # ── 9. Tests ──────────────────────────────────────────────────────────
+      # Runs all unit + integration + parity tests.  RUST_BACKTRACE=1 ensures
+      # any panic prints a full backtrace rather than just "test failed".
+      - name: cargo test
+        run: cargo test
+        env:
+          RUST_BACKTRACE: "1"

@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# diff-crawler — host-side wrapper for the diff-crawler Docker image.
+#
+# Resolves input directories to absolute paths, bind-mounts them read-only
+# inside the container as /in/a and /in/b, and writes any --json / --markdown
+# output into the current working directory.
+#
+# Override the image with DIFF_CRAWLER_IMAGE, e.g.:
+#   DIFF_CRAWLER_IMAGE=ghcr.io/my-org/diff-crawler:v1.2.0 diff-crawler A B
+#
+# Install:
+#   sudo cp scripts/diff-crawler /usr/local/bin/diff-crawler
+#   sudo chmod +x /usr/local/bin/diff-crawler
+
+set -euo pipefail
+
+IMAGE="${DIFF_CRAWLER_IMAGE:-ghcr.io/aadityavardhandardas/diff-crawler:latest}"
+
+if [ "$#" -lt 2 ]; then
+    echo "Usage: diff-crawler DIR_A DIR_B [OPTIONS...]" >&2
+    exit 1
+fi
+
+# Resolve to absolute paths using only POSIX builtins (no realpath dependency).
+dir_a="$(cd -- "$1" && pwd)" || { echo "error: '$1' is not a directory" >&2; exit 1; }
+dir_b="$(cd -- "$2" && pwd)" || { echo "error: '$2' is not a directory" >&2; exit 1; }
+shift 2
+
+# Translate --json / --markdown host-path arguments to /out/<basename> so the
+# container writes them into the $PWD-mounted /out volume.
+# All other flags are forwarded unchanged.
+container_args=()
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --json)
+            container_args+=(--json "/out/$(basename -- "$2")")
+            shift 2 ;;
+        --json=*)
+            container_args+=(--json "/out/$(basename -- "${1#--json=}")")
+            shift ;;
+        --markdown)
+            container_args+=(--markdown "/out/$(basename -- "$2")")
+            shift 2 ;;
+        --markdown=*)
+            container_args+=(--markdown "/out/$(basename -- "${1#--markdown=}")")
+            shift ;;
+        *)
+            container_args+=("$1")
+            shift ;;
+    esac
+done
+
+exec docker run --rm \
+    --user "$(id -u):$(id -g)" \
+    -v "${dir_a}:/in/a:ro" \
+    -v "${dir_b}:/in/b:ro" \
+    -v "${PWD}:/out" \
+    "${IMAGE}" \
+    /in/a /in/b \
+    ${container_args[@]+"${container_args[@]}"}

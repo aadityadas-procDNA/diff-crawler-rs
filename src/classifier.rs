@@ -21,10 +21,43 @@ pub struct Classification {
 // --- Extension sets (match classifier.py exactly) -------------------------
 
 const CODE_SUFFIXES: &[&str] = &[
-    ".py", ".ipynb", ".js", ".ts", ".tsx", ".jsx", ".java", ".kt", ".scala", ".c", ".h",
-    ".cpp", ".hpp", ".cc", ".go", ".rs", ".rb", ".php", ".sh", ".bash", ".zsh", ".r", ".jl",
-    ".sql", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".md", ".rst", ".txt", ".dockerfile",
-    ".tf", ".html", ".css", ".scss",
+    ".py",
+    ".ipynb",
+    ".js",
+    ".ts",
+    ".tsx",
+    ".jsx",
+    ".java",
+    ".kt",
+    ".scala",
+    ".c",
+    ".h",
+    ".cpp",
+    ".hpp",
+    ".cc",
+    ".go",
+    ".rs",
+    ".rb",
+    ".php",
+    ".sh",
+    ".bash",
+    ".zsh",
+    ".r",
+    ".jl",
+    ".sql",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".ini",
+    ".cfg",
+    ".md",
+    ".rst",
+    ".txt",
+    ".dockerfile",
+    ".tf",
+    ".html",
+    ".css",
+    ".scss",
 ];
 
 const DATA_SUFFIXES: &[&str] = &[
@@ -32,10 +65,41 @@ const DATA_SUFFIXES: &[&str] = &[
 ];
 
 const BINARY_SUFFIXES: &[&str] = &[
-    ".pkl", ".pickle", ".joblib", ".pt", ".pth", ".ckpt", ".safetensors", ".h5", ".hdf5",
-    ".onnx", ".pb", ".tflite", ".npy", ".npz", ".png", ".jpg", ".jpeg", ".gif", ".bmp",
-    ".tiff", ".webp", ".svg", ".mp3", ".wav", ".flac", ".mp4", ".mov", ".avi", ".zip",
-    ".tar", ".gz", ".bz2", ".7z", ".bin", ".dat",
+    ".pkl",
+    ".pickle",
+    ".joblib",
+    ".pt",
+    ".pth",
+    ".ckpt",
+    ".safetensors",
+    ".h5",
+    ".hdf5",
+    ".onnx",
+    ".pb",
+    ".tflite",
+    ".npy",
+    ".npz",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".bmp",
+    ".tiff",
+    ".webp",
+    ".svg",
+    ".mp3",
+    ".wav",
+    ".flac",
+    ".mp4",
+    ".mov",
+    ".avi",
+    ".zip",
+    ".tar",
+    ".gz",
+    ".bz2",
+    ".7z",
+    ".bin",
+    ".dat",
 ];
 
 /// JSON files below this size are treated as code/config; at or above, as data.
@@ -87,27 +151,51 @@ pub fn classify(abs_path: &Path) -> Classification {
     if suffix == ".json" {
         let size = abs_path.metadata().map(|m| m.len()).unwrap_or(0);
         return if size >= JSON_DATA_THRESHOLD_BYTES {
-            Classification { kind: FileKind::Data, reason: "json-large" }
+            Classification {
+                kind: FileKind::Data,
+                reason: "json-large",
+            }
         } else {
-            Classification { kind: FileKind::Code, reason: "json-config" }
+            Classification {
+                kind: FileKind::Code,
+                reason: "json-config",
+            }
         };
     }
 
     if DATA_SUFFIXES.contains(&suffix.as_str()) {
-        return Classification { kind: FileKind::Data, reason: "data" };
+        return Classification {
+            kind: FileKind::Data,
+            reason: "data",
+        };
     }
     if CODE_SUFFIXES.contains(&suffix.as_str()) {
-        return Classification { kind: FileKind::Code, reason: "code" };
+        return Classification {
+            kind: FileKind::Code,
+            reason: "code",
+        };
     }
     if BINARY_SUFFIXES.contains(&suffix.as_str()) {
-        return Classification { kind: FileKind::Binary, reason: "binary" };
+        return Classification {
+            kind: FileKind::Binary,
+            reason: "binary",
+        };
     }
 
     // Unknown extension: sniff the first 2 KB.
     match sniff(abs_path) {
-        Sniff::Binary => Classification { kind: FileKind::Binary, reason: "binary-sniffed" },
-        Sniff::Code => Classification { kind: FileKind::Code, reason: "text-sniffed" },
-        Sniff::Unreadable => Classification { kind: FileKind::Binary, reason: "unreadable" },
+        Sniff::Binary => Classification {
+            kind: FileKind::Binary,
+            reason: "binary-sniffed",
+        },
+        Sniff::Code => Classification {
+            kind: FileKind::Code,
+            reason: "text-sniffed",
+        },
+        Sniff::Unreadable => Classification {
+            kind: FileKind::Binary,
+            reason: "unreadable",
+        },
     }
 }
 

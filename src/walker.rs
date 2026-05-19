@@ -18,7 +18,11 @@ pub struct TreeIndex {
 
 impl TreeIndex {
     fn new(root: PathBuf) -> Self {
-        Self { root, files: HashSet::new(), abs_lookup: HashMap::new() }
+        Self {
+            root,
+            files: HashSet::new(),
+            abs_lookup: HashMap::new(),
+        }
     }
 
     fn insert(&mut self, rel: PathBuf, abs: PathBuf) {
@@ -38,8 +42,7 @@ pub struct TreeDiff {
 impl TreeDiff {
     /// Jaccard similarity over the file-path union. Returns 1.0 for two empty trees.
     pub fn jaccard(&self) -> f64 {
-        let union_size =
-            self.in_both.len() + self.only_in_a.len() + self.only_in_b.len();
+        let union_size = self.in_both.len() + self.only_in_a.len() + self.only_in_b.len();
         if union_size == 0 {
             return 1.0;
         }

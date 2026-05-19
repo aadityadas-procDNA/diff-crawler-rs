@@ -48,5 +48,6 @@ pub const EXCLUDED_DIRS: &[&str] = &[
 pub const EXCLUDED_FILES: &[&str] = &[".DS_Store", "Thumbs.db", ".gitignore.swp"];
 
 /// Suffixes include the leading dot and are matched case-insensitively.
-pub const EXCLUDED_SUFFIXES: &[&str] =
-    &[".pyc", ".pyo", ".pyd", ".class", ".log", ".tmp", ".swp", ".swo"];
+pub const EXCLUDED_SUFFIXES: &[&str] = &[
+    ".pyc", ".pyo", ".pyd", ".class", ".log", ".tmp", ".swp", ".swo",
+];

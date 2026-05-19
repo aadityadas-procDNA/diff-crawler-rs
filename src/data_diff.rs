@@ -102,7 +102,12 @@ struct TypeTracker {
 
 impl TypeTracker {
     fn new() -> Self {
-        Self { any_seen: false, still_bigint: true, still_double: true, still_bool: true }
+        Self {
+            any_seen: false,
+            still_bigint: true,
+            still_double: true,
+            still_bool: true,
+        }
     }
 
     fn observe(&mut self, s: &str) {
@@ -156,8 +161,11 @@ fn read_csv(path: &Path, deep: bool) -> Result<FileStats, String> {
     let mut trackers: Vec<TypeTracker> = (0..ncols).map(|_| TypeTracker::new()).collect();
     let mut nulls: Vec<i64> = vec![0; ncols];
     // Cap per-column distinct sets at 100_000 entries to bound memory.
-    let mut distinct: Vec<HashSet<String>> =
-        if deep { (0..ncols).map(|_| HashSet::new()).collect() } else { Vec::new() };
+    let mut distinct: Vec<HashSet<String>> = if deep {
+        (0..ncols).map(|_| HashSet::new()).collect()
+    } else {
+        Vec::new()
+    };
     let mut row_count = 0i64;
 
     for result in rdr.records() {
@@ -202,7 +210,11 @@ fn read_csv(path: &Path, deep: bool) -> Result<FileStats, String> {
         BTreeMap::new()
     };
 
-    Ok(FileStats { row_count, schema, column_stats })
+    Ok(FileStats {
+        row_count,
+        schema,
+        column_stats,
+    })
 }
 
 // ── JSONL / NDJSON ────────────────────────────────────────────────────────────
@@ -211,7 +223,11 @@ fn json_type_str(v: &serde_json::Value) -> &'static str {
     match v {
         serde_json::Value::Bool(_) => "BOOLEAN",
         serde_json::Value::Number(n) => {
-            if n.is_f64() { "DOUBLE" } else { "BIGINT" }
+            if n.is_f64() {
+                "DOUBLE"
+            } else {
+                "BIGINT"
+            }
         }
         serde_json::Value::String(_) => "VARCHAR",
         serde_json::Value::Array(_) => "JSON",
@@ -242,9 +258,9 @@ fn read_jsonl(path: &Path, deep: bool) -> Result<FileStats, String> {
         row_count += 1;
 
         for (k, val) in obj {
-            let entry = col_info.entry(k.clone()).or_insert_with(|| {
-                (String::from("VARCHAR"), 0, HashSet::new())
-            });
+            let entry = col_info
+                .entry(k.clone())
+                .or_insert_with(|| (String::from("VARCHAR"), 0, HashSet::new()));
 
             if val.is_null() {
                 entry.1 += 1;
@@ -261,21 +277,33 @@ fn read_jsonl(path: &Path, deep: bool) -> Result<FileStats, String> {
         }
     }
 
-    let schema: BTreeMap<String, String> =
-        col_info.iter().map(|(k, (t, _, _))| (k.clone(), t.clone())).collect();
+    let schema: BTreeMap<String, String> = col_info
+        .iter()
+        .map(|(k, (t, _, _))| (k.clone(), t.clone()))
+        .collect();
 
     let column_stats = if deep {
         col_info
             .iter()
             .map(|(k, (_, nulls, distinct))| {
-                (k.clone(), ColumnStat { nulls: *nulls, approx_distinct: distinct.len() as i64 })
+                (
+                    k.clone(),
+                    ColumnStat {
+                        nulls: *nulls,
+                        approx_distinct: distinct.len() as i64,
+                    },
+                )
             })
             .collect()
     } else {
         BTreeMap::new()
     };
 
-    Ok(FileStats { row_count, schema, column_stats })
+    Ok(FileStats {
+        row_count,
+        schema,
+        column_stats,
+    })
 }
 
 // ── large JSON (top-level array of objects) ───────────────────────────────────
@@ -292,7 +320,9 @@ fn read_json(path: &Path, deep: bool) -> Result<FileStats, String> {
     let mut col_info: BTreeMap<String, (String, i64, HashSet<String>)> = BTreeMap::new();
 
     for item in arr {
-        let Some(obj) = item.as_object() else { continue };
+        let Some(obj) = item.as_object() else {
+            continue;
+        };
         for (k, val) in obj {
             let entry = col_info
                 .entry(k.clone())
@@ -312,27 +342,37 @@ fn read_json(path: &Path, deep: bool) -> Result<FileStats, String> {
     }
 
     let row_count = arr.len() as i64;
-    let schema: BTreeMap<String, String> =
-        col_info.iter().map(|(k, (t, _, _))| (k.clone(), t.clone())).collect();
+    let schema: BTreeMap<String, String> = col_info
+        .iter()
+        .map(|(k, (t, _, _))| (k.clone(), t.clone()))
+        .collect();
     let column_stats = if deep {
         col_info
             .iter()
             .map(|(k, (_, nulls, distinct))| {
-                (k.clone(), ColumnStat { nulls: *nulls, approx_distinct: distinct.len() as i64 })
+                (
+                    k.clone(),
+                    ColumnStat {
+                        nulls: *nulls,
+                        approx_distinct: distinct.len() as i64,
+                    },
+                )
             })
             .collect()
     } else {
         BTreeMap::new()
     };
 
-    Ok(FileStats { row_count, schema, column_stats })
+    Ok(FileStats {
+        row_count,
+        schema,
+        column_stats,
+    })
 }
 
 // ── Parquet ───────────────────────────────────────────────────────────────────
 
-fn parquet_physical_type_str(
-    col: &parquet::schema::types::ColumnDescriptor,
-) -> String {
+fn parquet_physical_type_str(col: &parquet::schema::types::ColumnDescriptor) -> String {
     use parquet::basic::{ConvertedType, Type as PhysicalType};
 
     match col.physical_type() {
@@ -385,9 +425,8 @@ fn read_parquet(path: &Path, deep: bool) -> Result<FileStats, String> {
     // Deep stats: null counts from row-group column statistics.
     // approx_distinct is 0 — computing it requires reading data pages.
     let column_stats = if deep {
-        let mut nulls_per_col: BTreeMap<String, i64> = schema.keys()
-            .map(|k| (k.clone(), 0i64))
-            .collect();
+        let mut nulls_per_col: BTreeMap<String, i64> =
+            schema.keys().map(|k| (k.clone(), 0i64)).collect();
 
         for rg in meta.row_groups() {
             for col_idx in 0..rg.num_columns() {
@@ -403,9 +442,7 @@ fn read_parquet(path: &Path, deep: bool) -> Result<FileStats, String> {
                         Statistics::Float(s) => s.null_count_opt().unwrap_or(0) as i64,
                         Statistics::Double(s) => s.null_count_opt().unwrap_or(0) as i64,
                         Statistics::ByteArray(s) => s.null_count_opt().unwrap_or(0) as i64,
-                        Statistics::FixedLenByteArray(s) => {
-                            s.null_count_opt().unwrap_or(0) as i64
-                        }
+                        Statistics::FixedLenByteArray(s) => s.null_count_opt().unwrap_or(0) as i64,
                     };
                     *nulls_per_col.entry(col_name).or_insert(0) += null_count;
                 }
@@ -414,13 +451,25 @@ fn read_parquet(path: &Path, deep: bool) -> Result<FileStats, String> {
 
         nulls_per_col
             .into_iter()
-            .map(|(k, nulls)| (k, ColumnStat { nulls, approx_distinct: 0 }))
+            .map(|(k, nulls)| {
+                (
+                    k,
+                    ColumnStat {
+                        nulls,
+                        approx_distinct: 0,
+                    },
+                )
+            })
             .collect()
     } else {
         BTreeMap::new()
     };
 
-    Ok(FileStats { row_count, schema, column_stats })
+    Ok(FileStats {
+        row_count,
+        schema,
+        column_stats,
+    })
 }
 
 // ── dispatch ──────────────────────────────────────────────────────────────────
@@ -459,9 +508,7 @@ pub fn diff_data(rel: &Path, abs_a: &Path, abs_b: &Path, deep: bool) -> DataDiff
         .unwrap_or_default();
     if UNSUPPORTED_SUFFIXES.contains(&suffix.as_str()) {
         let mut r = DataDiffResult::new(path);
-        r.note = format!(
-            "skipped: {suffix} format is not supported; check this file manually"
-        );
+        r.note = format!("skipped: {suffix} format is not supported; check this file manually");
         return r;
     }
 
@@ -477,10 +524,8 @@ pub fn diff_data(rel: &Path, abs_a: &Path, abs_b: &Path, deep: bool) -> DataDiff
     let a_cols: BTreeSet<&str> = stats_a.schema.keys().map(|s| s.as_str()).collect();
     let b_cols: BTreeSet<&str> = stats_b.schema.keys().map(|s| s.as_str()).collect();
 
-    let columns_added: Vec<String> =
-        b_cols.difference(&a_cols).map(|s| s.to_string()).collect();
-    let columns_removed: Vec<String> =
-        a_cols.difference(&b_cols).map(|s| s.to_string()).collect();
+    let columns_added: Vec<String> = b_cols.difference(&a_cols).map(|s| s.to_string()).collect();
+    let columns_removed: Vec<String> = a_cols.difference(&b_cols).map(|s| s.to_string()).collect();
 
     // BTreeSet intersection is sorted alphabetically.
     let type_changes: BTreeMap<String, [String; 2]> = a_cols
@@ -488,14 +533,22 @@ pub fn diff_data(rel: &Path, abs_a: &Path, abs_b: &Path, deep: bool) -> DataDiff
         .filter_map(|c| {
             let ta = stats_a.schema[*c].clone();
             let tb = stats_b.schema[*c].clone();
-            if ta != tb { Some((c.to_string(), [ta, tb])) } else { None }
+            if ta != tb {
+                Some((c.to_string(), [ta, tb]))
+            } else {
+                None
+            }
         })
         .collect();
 
     // Parquet deep stats note: approx_distinct is always 0.
     let note = if deep
-        && (abs_a.extension().is_some_and(|e| e.eq_ignore_ascii_case("parquet"))
-            || abs_b.extension().is_some_and(|e| e.eq_ignore_ascii_case("parquet")))
+        && (abs_a
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("parquet"))
+            || abs_b
+                .extension()
+                .is_some_and(|e| e.eq_ignore_ascii_case("parquet")))
     {
         "approx_distinct is 0 for Parquet (requires reading data pages)".to_string()
     } else {

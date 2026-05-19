@@ -27,7 +27,10 @@ fn identical_files_use_fast_path() {
     assert_eq!(r.added_lines, 0);
     assert_eq!(r.removed_lines, 0);
     assert_eq!(r.similarity, 1.0);
-    assert!(r.unified_diff.is_empty(), "no diff string for identical files");
+    assert!(
+        r.unified_diff.is_empty(),
+        "no diff string for identical files"
+    );
     assert!(r.error.is_none());
 }
 
@@ -78,9 +81,19 @@ fn similarity_is_in_range() {
 
     let r = diff_code(Path::new("a.py"), &a, &b, false);
 
-    assert!((0.0..=1.0).contains(&r.similarity), "similarity={} out of range", r.similarity);
-    assert!(r.similarity < 1.0, "different files must have similarity < 1");
-    assert!(r.similarity > 0.0, "files with shared text must have similarity > 0");
+    assert!(
+        (0.0..=1.0).contains(&r.similarity),
+        "similarity={} out of range",
+        r.similarity
+    );
+    assert!(
+        r.similarity < 1.0,
+        "different files must have similarity < 1"
+    );
+    assert!(
+        r.similarity > 0.0,
+        "files with shared text must have similarity > 0"
+    );
 }
 
 #[test]
@@ -92,7 +105,11 @@ fn completely_different_files_have_low_similarity() {
     let r = diff_code(Path::new("a.py"), &a, &b, false);
 
     // They share a newline and the trailing \n; similarity should be very low.
-    assert!(r.similarity < 0.2, "similarity={} unexpectedly high", r.similarity);
+    assert!(
+        r.similarity < 0.2,
+        "similarity={} unexpectedly high",
+        r.similarity
+    );
 }
 
 #[test]
@@ -109,8 +126,14 @@ fn no_diff_flag_omits_unified_diff_but_keeps_counts() {
     assert_eq!(with_diff.removed_lines, without_diff.removed_lines);
     assert!((with_diff.similarity - without_diff.similarity).abs() < 1e-9);
 
-    assert!(!with_diff.unified_diff.is_empty(), "diff string expected when include_full_diff=true");
-    assert!(without_diff.unified_diff.is_empty(), "diff string must be empty when include_full_diff=false");
+    assert!(
+        !with_diff.unified_diff.is_empty(),
+        "diff string expected when include_full_diff=true"
+    );
+    assert!(
+        without_diff.unified_diff.is_empty(),
+        "diff string must be empty when include_full_diff=false"
+    );
 }
 
 #[test]
@@ -121,8 +144,14 @@ fn unified_diff_contains_expected_markers() {
 
     let r = diff_code(Path::new("src/a.py"), &a, &b, true);
 
-    assert!(r.unified_diff.contains("--- a/src/a.py"), "missing --- header");
-    assert!(r.unified_diff.contains("+++ b/src/a.py"), "missing +++ header");
+    assert!(
+        r.unified_diff.contains("--- a/src/a.py"),
+        "missing --- header"
+    );
+    assert!(
+        r.unified_diff.contains("+++ b/src/a.py"),
+        "missing +++ header"
+    );
     assert!(r.unified_diff.contains("-old_line"), "missing removed line");
     assert!(r.unified_diff.contains("+new_line"), "missing added line");
 }
@@ -140,7 +169,11 @@ fn large_file_skips_diff_and_has_note() {
     let r = diff_code(Path::new("big.bin"), &a, &b, true);
 
     assert!(!r.identical);
-    assert!(r.note.contains("too large"), "expected 'too large' note, got: {}", r.note);
+    assert!(
+        r.note.contains("too large"),
+        "expected 'too large' note, got: {}",
+        r.note
+    );
     assert!(r.unified_diff.is_empty());
     assert_eq!(r.added_lines, 0);
     assert_eq!(r.removed_lines, 0);
@@ -250,6 +283,9 @@ fn crawl_output_paths_use_forward_slashes() {
     let report = crawl(dir_a.path(), dir_b.path(), &CrawlConfig::default()).unwrap();
 
     let path = &report.code_diffs[0].path;
-    assert!(!path.contains('\\'), "path must use forward slashes, got: {path}");
+    assert!(
+        !path.contains('\\'),
+        "path must use forward slashes, got: {path}"
+    );
     assert_eq!(path, "src/lib.py");
 }

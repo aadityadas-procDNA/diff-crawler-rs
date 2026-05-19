@@ -40,9 +40,12 @@ pub fn render_markdown(report: &CrawlReport) -> String {
     ));
 
     // Most changed: sort ascending by similarity (most-changed first), show up to max_examples.
-    let mut changed_code: Vec<_> =
-        report.code_diffs.iter().filter(|d| !d.identical).collect();
-    changed_code.sort_by(|a, b| a.similarity.partial_cmp(&b.similarity).unwrap_or(std::cmp::Ordering::Equal));
+    let mut changed_code: Vec<_> = report.code_diffs.iter().filter(|d| !d.identical).collect();
+    changed_code.sort_by(|a, b| {
+        a.similarity
+            .partial_cmp(&b.similarity)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     if !changed_code.is_empty() {
         lines.push(String::new());
         lines.push("Most changed code files (lowest similarity first):".into());
@@ -97,9 +100,16 @@ pub fn render_markdown(report: &CrawlReport) -> String {
         "- Compared: {}  |  identical: {}",
         s.binary.compared, s.binary.identical,
     ));
-    let changed_bin: Vec<_> = report.binary_diffs.iter().filter(|b| !b.identical).collect();
+    let changed_bin: Vec<_> = report
+        .binary_diffs
+        .iter()
+        .filter(|b| !b.identical)
+        .collect();
     for x in changed_bin.iter().take(MAX_EXAMPLES) {
-        lines.push(format!("  - `{}` — size {} -> {}", x.path, x.size_a, x.size_b));
+        lines.push(format!(
+            "  - `{}` — size {} -> {}",
+            x.path, x.size_a, x.size_b
+        ));
     }
     lines.push(String::new());
 
@@ -111,11 +121,7 @@ pub fn render_markdown(report: &CrawlReport) -> String {
         for r in report.rename_candidates.iter().take(MAX_EXAMPLES) {
             lines.push(format!(
                 "  - `{}`  →  `{}`  (content {:.2}, name {:.2}, combined **{:.2}**)",
-                r.from_path,
-                r.to_path,
-                r.content_similarity,
-                r.name_similarity,
-                r.combined_score,
+                r.from_path, r.to_path, r.content_similarity, r.name_similarity, r.combined_score,
             ));
         }
     }
@@ -124,7 +130,10 @@ pub fn render_markdown(report: &CrawlReport) -> String {
     // ── Overall ───────────────────────────────────────────────────────────────
     lines.push("## Overall".into());
     lines.push(format!("- Renames detected: {}", s.renames_detected));
-    lines.push(format!("- Overall similarity score: **{}**", s.overall_similarity));
+    lines.push(format!(
+        "- Overall similarity score: **{}**",
+        s.overall_similarity
+    ));
 
     lines.join("\n")
 }

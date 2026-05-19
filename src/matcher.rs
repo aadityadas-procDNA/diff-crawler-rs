@@ -127,8 +127,7 @@ fn hash_for_perm(bytes: &[u8], perm: usize) -> u64 {
     const PRIME: u64 = 0x100000001b3;
     // XOR the FNV offset with a scramble of the permutation index so each
     // permutation starts from a different initial value.
-    let mut h: u64 =
-        0xcbf29ce484222325u64 ^ (perm as u64).wrapping_mul(0x9e3779b97f4a7c15u64);
+    let mut h: u64 = 0xcbf29ce484222325u64 ^ (perm as u64).wrapping_mul(0x9e3779b97f4a7c15u64);
     for &b in bytes {
         h ^= b as u64;
         h = h.wrapping_mul(PRIME);
@@ -177,8 +176,7 @@ fn hash_band(values: &[u64], band_idx: usize) -> u64 {
 /// Returns `NUM_BANDS` hash maps, each mapping a bucket key to the list of
 /// indices (into `sigs`) that fell into that bucket.
 fn build_lsh_index(sigs: &[[u64; NUM_PERM]]) -> Vec<HashMap<u64, Vec<usize>>> {
-    let mut bands: Vec<HashMap<u64, Vec<usize>>> =
-        (0..NUM_BANDS).map(|_| HashMap::new()).collect();
+    let mut bands: Vec<HashMap<u64, Vec<usize>>> = (0..NUM_BANDS).map(|_| HashMap::new()).collect();
 
     for (idx, sig) in sigs.iter().enumerate() {
         for (band, map) in bands.iter_mut().enumerate() {
@@ -193,10 +191,7 @@ fn build_lsh_index(sigs: &[[u64; NUM_PERM]]) -> Vec<HashMap<u64, Vec<usize>>> {
 
 /// Query the index for all B-side indices that share at least one band bucket
 /// with `query_sig`.
-fn query_lsh(
-    query_sig: &[u64; NUM_PERM],
-    bands: &[HashMap<u64, Vec<usize>>],
-) -> HashSet<usize> {
+fn query_lsh(query_sig: &[u64; NUM_PERM], bands: &[HashMap<u64, Vec<usize>>]) -> HashSet<usize> {
     let mut out = HashSet::new();
     for (band, map) in bands.iter().enumerate() {
         let start = band * ROWS_PER_BAND;
@@ -215,10 +210,14 @@ fn query_lsh(
 /// Mirrors Python's `_name_similarity()` which uses `difflib.SequenceMatcher`
 /// on `path.name` (the filename component only, not the full relative path).
 fn name_similarity(a: &Path, b: &Path) -> f64 {
-    let na =
-        a.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let nb =
-        b.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let na = a
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let nb = b
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
     f64::from(similar::TextDiff::from_chars(&na, &nb).ratio())
 }
 
@@ -328,7 +327,10 @@ pub fn find_renames(
                 let name_sim = name_similarity(rel_a, rel_b);
                 let combined = 0.75 * content_sim + 0.25 * name_sim;
 
-                if best.as_ref().is_none_or(|b: &RenameCandidate| combined > b.combined_score) {
+                if best
+                    .as_ref()
+                    .is_none_or(|b: &RenameCandidate| combined > b.combined_score)
+                {
                     best = Some(RenameCandidate {
                         from_path: rel_to_str(rel_a),
                         to_path: rel_to_str(rel_b),

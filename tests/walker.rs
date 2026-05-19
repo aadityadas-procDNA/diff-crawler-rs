@@ -228,6 +228,9 @@ fn abs_lookup_resolves_to_existing_file() {
 
     let idx = walk_tree(dir.path()).unwrap();
     let rel = std::path::PathBuf::from("src/model.py");
-    let abs = idx.abs_lookup.get(&rel).expect("rel path must be in abs_lookup");
+    let abs = idx
+        .abs_lookup
+        .get(&rel)
+        .expect("rel path must be in abs_lookup");
     assert!(abs.exists());
 }

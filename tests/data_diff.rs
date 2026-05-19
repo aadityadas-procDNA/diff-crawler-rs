@@ -103,7 +103,10 @@ fn csv_type_change_detected() {
     let r = diff_data(Path::new("data.csv"), &a, &b, false);
 
     assert!(r.error.is_none(), "unexpected error: {:?}", r.error);
-    assert!(r.type_changes.contains_key("val"), "expected type change on 'val'");
+    assert!(
+        r.type_changes.contains_key("val"),
+        "expected type change on 'val'"
+    );
     let change = &r.type_changes["val"];
     assert_eq!(change[0], "BIGINT");
     assert_eq!(change[1], "VARCHAR");
@@ -122,7 +125,10 @@ fn csv_schema_keys_are_alphabetical() {
     let keys_a: Vec<&String> = r.schema_a.keys().collect();
     let mut sorted = keys_a.clone();
     sorted.sort();
-    assert_eq!(keys_a, sorted, "schema_a keys must be in alphabetical order");
+    assert_eq!(
+        keys_a, sorted,
+        "schema_a keys must be in alphabetical order"
+    );
 }
 
 #[test]
@@ -134,8 +140,14 @@ fn csv_deep_stats_populated() {
     let r = diff_data(Path::new("data.csv"), &a, &b, true);
 
     assert!(r.error.is_none(), "unexpected error: {:?}", r.error);
-    assert!(!r.column_stats_a.is_empty(), "column_stats_a should be populated");
-    assert!(!r.column_stats_b.is_empty(), "column_stats_b should be populated");
+    assert!(
+        !r.column_stats_a.is_empty(),
+        "column_stats_a should be populated"
+    );
+    assert!(
+        !r.column_stats_b.is_empty(),
+        "column_stats_b should be populated"
+    );
     // x has one null in file a
     assert_eq!(r.column_stats_a["x"].nulls, 1);
     // y has no nulls in file a
@@ -220,7 +232,11 @@ fn path_uses_forward_slashes() {
 
     let r = diff_data(Path::new("sub/data.csv"), &a, &b, false);
 
-    assert!(!r.path.contains('\\'), "path must use forward slashes, got: {}", r.path);
+    assert!(
+        !r.path.contains('\\'),
+        "path must use forward slashes, got: {}",
+        r.path
+    );
     assert_eq!(r.path, "sub/data.csv");
 }
 
@@ -234,8 +250,15 @@ fn unsupported_format_returns_skip_note() {
 
     let r = diff_data(Path::new("data.xlsx"), &a, &b, false);
 
-    assert!(r.error.is_none(), "unsupported format should not produce an error");
-    assert!(r.note.contains("skipped"), "expected 'skipped' in note, got: {}", r.note);
+    assert!(
+        r.error.is_none(),
+        "unsupported format should not produce an error"
+    );
+    assert!(
+        r.note.contains("skipped"),
+        "expected 'skipped' in note, got: {}",
+        r.note
+    );
 }
 
 // ── crawler integration ───────────────────────────────────────────────────────

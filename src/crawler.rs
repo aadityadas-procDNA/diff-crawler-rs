@@ -238,13 +238,14 @@ pub fn crawl(dir_a: &Path, dir_b: &Path, config: &CrawlConfig) -> Result<CrawlRe
             let cls_b = classify(abs_b);
             // If both sides classify differently, fall back to binary
             // (mirrors Python: `kind = cls_a.kind if cls_a.kind == cls_b.kind else "binary"`).
-            let kind =
-                if cls_a.kind == cls_b.kind { cls_a.kind } else { FileKind::Binary };
+            let kind = if cls_a.kind == cls_b.kind {
+                cls_a.kind
+            } else {
+                FileKind::Binary
+            };
 
             match kind {
-                FileKind::Code => {
-                    Dispatched::Code(diff_code(rel, abs_a, abs_b, include_diff))
-                }
+                FileKind::Code => Dispatched::Code(diff_code(rel, abs_a, abs_b, include_diff)),
                 FileKind::Binary => Dispatched::Binary(diff_binary(rel, abs_a, abs_b)),
                 FileKind::Data => Dispatched::Data(diff_data(rel, abs_a, abs_b, deep)),
                 // Ignored files are filtered out by the walker and never in `in_both`.

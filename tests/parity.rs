@@ -53,7 +53,10 @@ fn python_cmd() -> Option<String> {
     for &py in &["python", "python3"] {
         let ok = Command::new(py)
             .env("PYTHONPATH", &ref_dir)
-            .args(["-c", "from diff_crawler.crawler import DiffCrawler; print('ok')"])
+            .args([
+                "-c",
+                "from diff_crawler.crawler import DiffCrawler; print('ok')",
+            ])
             .output()
             .map(|o| o.status.success())
             .unwrap_or(false);
@@ -217,7 +220,8 @@ fn run_python_json(py: &str, dir_a: &Path, dir_b: &Path, json_path: &Path) -> Va
     let out = Command::new(py)
         .env("PYTHONPATH", &ref_dir)
         .args([
-            "-m", "diff_crawler",
+            "-m",
+            "diff_crawler",
             dir_a.to_str().unwrap(),
             dir_b.to_str().unwrap(),
             "--no-diff",
@@ -244,15 +248,17 @@ fn both_outputs(py: &str) -> (Value, Value) {
     let (dir_a, dir_b) = make_fixture();
     let tmp = TempDir::new().unwrap();
     let rust_path = tmp.path().join("rust.json");
-    let py_path   = tmp.path().join("py.json");
-    let rust_val  = run_rust_json(dir_a.path(), dir_b.path(), &rust_path);
-    let py_val    = run_python_json(py, dir_a.path(), dir_b.path(), &py_path);
+    let py_path = tmp.path().join("py.json");
+    let rust_val = run_rust_json(dir_a.path(), dir_b.path(), &rust_path);
+    let py_val = run_python_json(py, dir_a.path(), dir_b.path(), &py_path);
     (rust_val, py_val)
 }
 
 // ── comparison utilities ──────────────────────────────────────────────────────
 
-fn norm(s: &str) -> String { s.replace('\\', "/") }
+fn norm(s: &str) -> String {
+    s.replace('\\', "/")
+}
 
 fn sorted_paths(arr: &Value) -> Vec<String> {
     let mut v: Vec<String> = arr
@@ -265,7 +271,9 @@ fn sorted_paths(arr: &Value) -> Vec<String> {
     v
 }
 
-fn approx_eq(a: f64, b: f64, tol: f64) -> bool { (a - b).abs() <= tol }
+fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
+    (a - b).abs() <= tol
+}
 
 fn by_path(arr: &Value) -> HashMap<String, &Value> {
     arr.as_array()
@@ -281,7 +289,10 @@ fn by_path(arr: &Value) -> HashMap<String, &Value> {
 fn parity_tree_sets() {
     let py = match python_cmd() {
         Some(p) => p,
-        None => { eprintln!("SKIP parity_tree_sets: Python unavailable"); return; }
+        None => {
+            eprintln!("SKIP parity_tree_sets: Python unavailable");
+            return;
+        }
     };
     let (rust, python) = both_outputs(&py);
 
@@ -296,7 +307,10 @@ fn parity_tree_sets() {
 fn parity_code_diffs() {
     let py = match python_cmd() {
         Some(p) => p,
-        None => { eprintln!("SKIP parity_code_diffs: Python unavailable"); return; }
+        None => {
+            eprintln!("SKIP parity_code_diffs: Python unavailable");
+            return;
+        }
     };
     let (rust, python) = both_outputs(&py);
 
@@ -304,12 +318,16 @@ fn parity_code_diffs() {
     let p_map = by_path(&python["code_diffs"]);
 
     assert_eq!(
-        r_map.len(), p_map.len(),
-        "code_diffs length  rust={}  python={}", r_map.len(), p_map.len(),
+        r_map.len(),
+        p_map.len(),
+        "code_diffs length  rust={}  python={}",
+        r_map.len(),
+        p_map.len(),
     );
 
     for (path, r) in &r_map {
-        let p = p_map.get(path)
+        let p = p_map
+            .get(path)
             .unwrap_or_else(|| panic!("rust has code diff for '{path}'; python does not"));
 
         let r_id = r["identical"].as_bool().unwrap();
@@ -318,11 +336,17 @@ fn parity_code_diffs() {
 
         let r_add = r["added_lines"].as_u64().unwrap();
         let p_add = p["added_lines"].as_u64().unwrap();
-        assert_eq!(r_add, p_add, "{path}: added_lines  rust={r_add}  python={p_add}");
+        assert_eq!(
+            r_add, p_add,
+            "{path}: added_lines  rust={r_add}  python={p_add}"
+        );
 
         let r_rem = r["removed_lines"].as_u64().unwrap();
         let p_rem = p["removed_lines"].as_u64().unwrap();
-        assert_eq!(r_rem, p_rem, "{path}: removed_lines  rust={r_rem}  python={p_rem}");
+        assert_eq!(
+            r_rem, p_rem,
+            "{path}: removed_lines  rust={r_rem}  python={p_rem}"
+        );
 
         let r_sim = r["similarity"].as_f64().unwrap();
         let p_sim = p["similarity"].as_f64().unwrap();
@@ -337,7 +361,10 @@ fn parity_code_diffs() {
 fn parity_binary_diffs() {
     let py = match python_cmd() {
         Some(p) => p,
-        None => { eprintln!("SKIP parity_binary_diffs: Python unavailable"); return; }
+        None => {
+            eprintln!("SKIP parity_binary_diffs: Python unavailable");
+            return;
+        }
     };
     let (rust, python) = both_outputs(&py);
 
@@ -345,18 +372,23 @@ fn parity_binary_diffs() {
     let p_map = by_path(&python["binary_diffs"]);
 
     assert_eq!(
-        r_map.len(), p_map.len(),
-        "binary_diffs length  rust={}  python={}", r_map.len(), p_map.len(),
+        r_map.len(),
+        p_map.len(),
+        "binary_diffs length  rust={}  python={}",
+        r_map.len(),
+        p_map.len(),
     );
 
     for (path, r) in &r_map {
-        let p = p_map.get(path)
+        let p = p_map
+            .get(path)
             .unwrap_or_else(|| panic!("rust has binary diff for '{path}'; python does not"));
 
         for field in &["identical", "size_a", "size_b", "sha256_a", "sha256_b"] {
             assert_eq!(
                 r[field], p[field],
-                "{path}: '{field}'  rust={}  python={}", r[field], p[field],
+                "{path}: '{field}'  rust={}  python={}",
+                r[field], p[field],
             );
         }
     }
@@ -366,7 +398,10 @@ fn parity_binary_diffs() {
 fn parity_summary_tree() {
     let py = match python_cmd() {
         Some(p) => p,
-        None => { eprintln!("SKIP parity_summary_tree: Python unavailable"); return; }
+        None => {
+            eprintln!("SKIP parity_summary_tree: Python unavailable");
+            return;
+        }
     };
     let (rust, python) = both_outputs(&py);
 
@@ -374,26 +409,45 @@ fn parity_summary_tree() {
     let p = &python["summary"]["tree"];
 
     for field in &["files_in_both", "only_in_a", "only_in_b"] {
-        assert_eq!(r[field], p[field], "summary.tree.{field}  rust={}  python={}", r[field], p[field]);
+        assert_eq!(
+            r[field], p[field],
+            "summary.tree.{field}  rust={}  python={}",
+            r[field], p[field]
+        );
     }
     let r_jac = r["tree_jaccard"].as_f64().unwrap();
     let p_jac = p["tree_jaccard"].as_f64().unwrap();
-    assert!(approx_eq(r_jac, p_jac, 1e-6), "summary.tree.tree_jaccard  rust={r_jac}  python={p_jac}");
+    assert!(
+        approx_eq(r_jac, p_jac, 1e-6),
+        "summary.tree.tree_jaccard  rust={r_jac}  python={p_jac}"
+    );
 }
 
 #[test]
 fn parity_summary_code() {
     let py = match python_cmd() {
         Some(p) => p,
-        None => { eprintln!("SKIP parity_summary_code: Python unavailable"); return; }
+        None => {
+            eprintln!("SKIP parity_summary_code: Python unavailable");
+            return;
+        }
     };
     let (rust, python) = both_outputs(&py);
 
     let r = &rust["summary"]["code"];
     let p = &python["summary"]["code"];
 
-    for field in &["compared", "identical", "total_added_lines", "total_removed_lines"] {
-        assert_eq!(r[field], p[field], "summary.code.{field}  rust={}  python={}", r[field], p[field]);
+    for field in &[
+        "compared",
+        "identical",
+        "total_added_lines",
+        "total_removed_lines",
+    ] {
+        assert_eq!(
+            r[field], p[field],
+            "summary.code.{field}  rust={}  python={}",
+            r[field], p[field]
+        );
     }
     let r_sim = r["avg_similarity"].as_f64().unwrap();
     let p_sim = p["avg_similarity"].as_f64().unwrap();
@@ -407,7 +461,10 @@ fn parity_summary_code() {
 fn parity_summary_binary() {
     let py = match python_cmd() {
         Some(p) => p,
-        None => { eprintln!("SKIP parity_summary_binary: Python unavailable"); return; }
+        None => {
+            eprintln!("SKIP parity_summary_binary: Python unavailable");
+            return;
+        }
     };
     let (rust, python) = both_outputs(&py);
 
@@ -415,7 +472,11 @@ fn parity_summary_binary() {
     let p = &python["summary"]["binary"];
 
     for field in &["compared", "identical"] {
-        assert_eq!(r[field], p[field], "summary.binary.{field}  rust={}  python={}", r[field], p[field]);
+        assert_eq!(
+            r[field], p[field],
+            "summary.binary.{field}  rust={}  python={}",
+            r[field], p[field]
+        );
     }
 }
 
@@ -423,7 +484,10 @@ fn parity_summary_binary() {
 fn parity_overall_similarity() {
     let py = match python_cmd() {
         Some(p) => p,
-        None => { eprintln!("SKIP parity_overall_similarity: Python unavailable"); return; }
+        None => {
+            eprintln!("SKIP parity_overall_similarity: Python unavailable");
+            return;
+        }
     };
     let (rust, python) = both_outputs(&py);
 
