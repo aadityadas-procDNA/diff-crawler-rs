@@ -5,4 +5,5 @@ pub mod crawler;
 pub mod data_diff;
 pub mod error;
 pub mod matcher;
+pub mod report;
 pub mod walker;

@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
-use anyhow::Result;
 use clap::Parser;
 use tracing_subscriber::EnvFilter;
 
 use diff_crawler::config::CrawlConfig;
 use diff_crawler::crawler::crawl;
+use diff_crawler::report::render_markdown;
 
 #[derive(Parser)]
 #[command(name = "diff-crawler", about = "Diff two ML project directories")]
@@ -17,7 +17,7 @@ struct Cli {
     #[arg(long)]
     json: Option<PathBuf>,
 
-    /// Write Markdown summary to this path. (Rendered in Phase 5.)
+    /// Write Markdown summary to this path.
     #[arg(long)]
     markdown: Option<PathBuf>,
 
@@ -25,7 +25,7 @@ struct Cli {
     #[arg(long)]
     no_diff: bool,
 
-    /// Run deeper data stats (null counts, approx distinct). (Phase 3.)
+    /// Run deeper data stats (null counts, approx distinct).
     #[arg(long)]
     deep: bool,
 
@@ -38,7 +38,7 @@ struct Cli {
     verbose: bool,
 }
 
-fn main() -> Result<()> {
+fn main() {
     let cli = Cli::parse();
 
     let filter = if cli.verbose {
@@ -55,16 +55,45 @@ fn main() -> Result<()> {
         ..CrawlConfig::default()
     };
 
-    let report = crawl(&cli.dir_a, &cli.dir_b, &config)?;
-    let json_text = serde_json::to_string_pretty(&report)?;
+    let report = match crawl(&cli.dir_a, &cli.dir_b, &config) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {e:#}");
+            std::process::exit(2);
+        }
+    };
 
+    // ── JSON output ───────────────────────────────────────────────────────────
     if let Some(json_path) = &cli.json {
-        std::fs::write(json_path, &json_text)?;
+        let text = match serde_json::to_string_pretty(&report) {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("error serializing JSON: {e}");
+                std::process::exit(2);
+            }
+        };
+        if let Err(e) = std::fs::write(json_path, &text) {
+            eprintln!("error writing {}: {e}", json_path.display());
+            std::process::exit(2);
+        }
         eprintln!("Wrote JSON: {}", json_path.display());
     }
 
-    // Markdown renderer is Phase 5; until then always emit JSON to stdout.
-    println!("{json_text}");
+    // ── Markdown output ───────────────────────────────────────────────────────
+    let md = render_markdown(&report);
 
-    Ok(())
+    if let Some(md_path) = &cli.markdown {
+        if let Err(e) = std::fs::write(md_path, &md) {
+            eprintln!("error writing {}: {e}", md_path.display());
+            std::process::exit(2);
+        }
+        eprintln!("Wrote Markdown: {}", md_path.display());
+    }
+
+    // If neither --json nor --markdown was given, print Markdown to stdout.
+    // If only --json was given, still print Markdown to stdout so the user
+    // gets human-readable output by default (matches Python CLI behaviour).
+    if cli.markdown.is_none() {
+        println!("{md}");
+    }
 }
