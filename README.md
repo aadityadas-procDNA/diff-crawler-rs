@@ -1,6 +1,5 @@
 # diff-crawler
-
-[![CI](https://github.com/AadityaVardhanDas/diff-crawler-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/AadityaVardhanDas/diff-crawler-rs/actions/workflows/ci.yml)
+[![CI](https://github.com/aadityadas-procDNA/diff-crawler-rs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aadityadas-procDNA/diff-crawler-rs/actions/workflows/ci.yml)
 
 A fast CLI tool that diffs two ML project directories across five layers:
 tree structure, code changes, data file schemas, binary/model hashes, and
